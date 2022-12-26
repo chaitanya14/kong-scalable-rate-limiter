@@ -18,6 +18,7 @@ local RATELIMIT_LIMIT     = "RateLimit-Limit"
 local RATELIMIT_REMAINING = "RateLimit-Remaining"
 local RATELIMIT_RESET     = "RateLimit-Reset"
 local RETRY_AFTER         = "Retry-After"
+local RATELIMIT_EXCEEDED  = "RateLimit-Exceeded"
 
 
 local X_RATELIMIT_LIMIT = {
@@ -140,7 +141,7 @@ function RateLimitingHandler:access(conf)
     if err then
         kong.log.err("failed to get usage: ", tostring(err))
     end
-    
+
     if usage then
         -- Adding headers
         local reset
@@ -159,7 +160,7 @@ function RateLimitingHandler:access(conf)
               current_remaining = current_remaining - 1
             end
             current_remaining = max(0, current_remaining)
-    
+
             if not limit or (current_remaining < remaining)
                          or (current_remaining == remaining and
                              current_window > window)
@@ -167,18 +168,18 @@ function RateLimitingHandler:access(conf)
               limit = current_limit
               window = current_window
               remaining = current_remaining
-    
+
               if not timestamps then
                 timestamps = timestamp.get_timestamps(current_timestamp)
               end
-    
+
               reset = max(1, window - floor((current_timestamp - timestamps[k]) / 1000))
             end
-    
+
             headers[X_RATELIMIT_LIMIT[k]] = current_limit
             headers[X_RATELIMIT_REMAINING[k]] = current_remaining
           end
-    
+
           headers[RATELIMIT_LIMIT] = limit
           headers[RATELIMIT_REMAINING] = remaining
           headers[RATELIMIT_RESET] = reset
@@ -187,9 +188,8 @@ function RateLimitingHandler:access(conf)
         -- If get_usage succeeded and limit has been crossed
         if usage and stop then
             headers = headers or {}
-            kong.log.err("API rate limit exceeded")
-            headers[RETRY_AFTER] = reset
-            return kong.response.exit(429, { error = { message = conf.error_message }}, headers)
+            headers[RATELIMIT_EXCEEDED] = true
+            kong.log.warn("Rate limit exceeded for identifier ", identifier)
         end
 
         if headers then
