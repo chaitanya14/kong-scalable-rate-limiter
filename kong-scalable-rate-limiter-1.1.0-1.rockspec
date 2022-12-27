@@ -1,11 +1,11 @@
-package = "kong-scalable-rate-limiter"
+package = "quizizz-scalable-rate-limiter"
 
 version = "1.1.0-1"
 
 supported_platforms = {"linux", "macosx"}
 
 source = {
-    url = "git://github.com/dream11/kong-scalable-rate-limiter",
+    url = "git@github.com:quizizz/kong-scalable-rate-limiter.git",
     tag = "v1.1.0"
 }
 
