@@ -30,7 +30,7 @@ local function validate_limits_per_consumer_config(config)
 end
 
 return {
-    name = "scalable-rate-limiter",
+    name = "quizizz-scalable-rate-limiter",
     fields = {
         { protocols = typedefs.protocols_http },
         {

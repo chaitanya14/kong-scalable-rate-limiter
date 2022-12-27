@@ -1,5 +1,5 @@
-local policies = require "kong.plugins.scalable-rate-limiter.policies"
-local EXPIRATION = require "kong.plugins.scalable-rate-limiter.expiration"
+local policies = require "kong.plugins.quizizz-scalable-rate-limiter.policies"
+local EXPIRATION = require "kong.plugins.quizizz-scalable-rate-limiter.expiration"
 local timestamp = require "kong.tools.timestamp"
 
 local kong = kong

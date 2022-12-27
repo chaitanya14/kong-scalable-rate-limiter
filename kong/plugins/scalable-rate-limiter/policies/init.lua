@@ -1,5 +1,5 @@
 local timestamp = require "kong.tools.timestamp"
-local connection = require "kong.plugins.scalable-rate-limiter.policies.connection"
+local connection = require "kong.plugins.quizizz-scalable-rate-limiter.policies.connection"
 
 local kong = kong
 local pairs = pairs
@@ -32,7 +32,7 @@ local get_local_key = function(conf, identifier, period, period_date)
     return fmt("ratelimit:%s:%s:%s:%s:%s", route_id, service_id, identifier, period_date, period)
 end
 
-local EXPIRATION = require "kong.plugins.scalable-rate-limiter.expiration"
+local EXPIRATION = require "kong.plugins.quizizz-scalable-rate-limiter.expiration"
 
 return {
     ["redis"] = {
