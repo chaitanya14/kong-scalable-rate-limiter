@@ -1,4 +1,4 @@
-local PLUGIN_NAME = "scalable-rate-limiter"
+local PLUGIN_NAME = "quizizz-scalable-rate-limiter"
 
 -- helper function to validate data against a schema
 local validate

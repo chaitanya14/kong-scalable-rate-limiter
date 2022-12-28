@@ -1,6 +1,6 @@
 file_name=$(ls *.rockspec)
 
-prefix='kong-scalable-rate-limiter-'
+prefix='quizizz-scalable-rate-limiter-'
 suffix='-1.rockspec'
 
 version=${file_name#"$prefix"}

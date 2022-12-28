@@ -99,7 +99,7 @@ for _, strategy in helpers.each_strategy() do
                 lazy_setup(function()
                     helpers.kill_all()
 
-                    bp, db = helpers.get_db_utils(strategy, nil, {"scalable-rate-limiter"})
+                    bp, db = helpers.get_db_utils(strategy, nil, {"quizizz-scalable-rate-limiter"})
 
                     -- Add request termination plugin at global level to return 200 response for all api calls
                     bp.plugins:insert {
@@ -111,7 +111,7 @@ for _, strategy in helpers.each_strategy() do
 
                     -- Global level Rate limiting plugin limit by service
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         config = limit_by_service_config,
                     }
 
@@ -175,7 +175,7 @@ for _, strategy in helpers.each_strategy() do
                     assert(helpers.start_kong({
                         database   = strategy,
                         nginx_conf = "spec/fixtures/custom_nginx.template",
-                        plugins = "bundled,scalable-rate-limiter",
+                        plugins = "bundled,quizizz-scalable-rate-limiter",
                     }))
                 end)
 
@@ -220,7 +220,7 @@ for _, strategy in helpers.each_strategy() do
                 lazy_setup(function()
                     helpers.kill_all()
 
-                    bp, db = helpers.get_db_utils(strategy, nil, {"scalable-rate-limiter"})
+                    bp, db = helpers.get_db_utils(strategy, nil, {"quizizz-scalable-rate-limiter"})
 
                     -- Add request termination plugin at global level to return 200 response for all api calls
                     bp.plugins:insert {
@@ -232,7 +232,7 @@ for _, strategy in helpers.each_strategy() do
 
                     -- Global level Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         config = limit_by_header_config,
                     }
 
@@ -296,7 +296,7 @@ for _, strategy in helpers.each_strategy() do
                     assert(helpers.start_kong({
                         database   = strategy,
                         nginx_conf = "spec/fixtures/custom_nginx.template",
-                        plugins = "bundled,scalable-rate-limiter",
+                        plugins = "bundled,quizizz-scalable-rate-limiter",
                     }))
                 end)
 
@@ -354,7 +354,7 @@ for _, strategy in helpers.each_strategy() do
                 lazy_setup(function()
                     helpers.kill_all()
 
-                    bp, db = helpers.get_db_utils(strategy, nil, {"scalable-rate-limiter"})
+                    bp, db = helpers.get_db_utils(strategy, nil, {"quizizz-scalable-rate-limiter"})
 
                     -- Add request termination plugin at global level to return 200 response for all api calls
                     bp.plugins:insert {
@@ -387,21 +387,21 @@ for _, strategy in helpers.each_strategy() do
 
                     -- Service-1 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         service = service_1,
                         config = limit_by_service_config,
                     }
 
                     -- Service-2 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         service = service_2,
                         config = limit_by_service_config,
                     }
 
                     -- Service-3 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         service = service_3,
                         config = limit_by_service_config,
                     }
@@ -445,7 +445,7 @@ for _, strategy in helpers.each_strategy() do
                     assert(helpers.start_kong({
                         database   = strategy,
                         nginx_conf = "spec/fixtures/custom_nginx.template",
-                        plugins = "bundled,scalable-rate-limiter",
+                        plugins = "bundled,quizizz-scalable-rate-limiter",
                     }))
                 end)
 
@@ -490,7 +490,7 @@ for _, strategy in helpers.each_strategy() do
                 lazy_setup(function()
                     helpers.kill_all()
 
-                    bp, db = helpers.get_db_utils(strategy, nil, {"scalable-rate-limiter"})
+                    bp, db = helpers.get_db_utils(strategy, nil, {"quizizz-scalable-rate-limiter"})
 
                     -- Add request termination plugin at global level to return 200 response for all api calls
                     bp.plugins:insert {
@@ -523,21 +523,21 @@ for _, strategy in helpers.each_strategy() do
 
                     -- Service-1 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         service = service_1,
                         config = limit_by_header_config,
                     }
 
                     -- Service-2 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         service = service_2,
                         config = limit_by_header_config,
                     }
 
                     -- Service-3 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         service = service_3,
                         config = limit_by_header_config,
                     }
@@ -581,7 +581,7 @@ for _, strategy in helpers.each_strategy() do
                     assert(helpers.start_kong({
                         database   = strategy,
                         nginx_conf = "spec/fixtures/custom_nginx.template",
-                        plugins = "bundled,scalable-rate-limiter",
+                        plugins = "bundled,quizizz-scalable-rate-limiter",
                     }))
                 end)
 
@@ -646,7 +646,7 @@ for _, strategy in helpers.each_strategy() do
                 lazy_setup(function()
                     helpers.kill_all()
 
-                    bp, db = helpers.get_db_utils(strategy, nil, {"scalable-rate-limiter"})
+                    bp, db = helpers.get_db_utils(strategy, nil, {"quizizz-scalable-rate-limiter"})
 
                     -- Add request termination plugin at global level to return 200 response for all api calls
                     bp.plugins:insert {
@@ -715,28 +715,28 @@ for _, strategy in helpers.each_strategy() do
 
                     -- service_1_route_1 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         route = service_1_route_1,
                         config = limit_by_header_config,
                     }
 
                     -- service_2_route_1 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         route = service_2_route_1,
                         config = limit_by_header_config,
                     }
 
                     -- service_3_route_1 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         route = service_3_route_1,
                         config = limit_by_header_config,
                     }
 
                     -- service_3_route_2 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         route = service_3_route_2,
                         config = limit_by_header_config,
                     }
@@ -744,7 +744,7 @@ for _, strategy in helpers.each_strategy() do
                     assert(helpers.start_kong({
                         database   = strategy,
                         nginx_conf = "spec/fixtures/custom_nginx.template",
-                        plugins = "bundled,scalable-rate-limiter",
+                        plugins = "bundled,quizizz-scalable-rate-limiter",
                     }))
                 end)
 
@@ -806,7 +806,7 @@ for _, strategy in helpers.each_strategy() do
                 lazy_setup(function()
                     helpers.kill_all()
 
-                    bp, db = helpers.get_db_utils(strategy, nil, {"scalable-rate-limiter"})
+                    bp, db = helpers.get_db_utils(strategy, nil, {"quizizz-scalable-rate-limiter"})
 
                     -- Add request termination plugin at global level to return 200 response for all api calls
                     bp.plugins:insert {
@@ -875,28 +875,28 @@ for _, strategy in helpers.each_strategy() do
 
                     -- service_1_route_1 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         route = service_1_route_1,
                         config = limit_by_service_config,
                     }
 
                     -- service_2_route_1 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         route = service_2_route_1,
                         config = limit_by_service_config,
                     }
 
                     -- service_3_route_1 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         route = service_3_route_1,
                         config = limit_by_service_config,
                     }
 
                     -- service_3_route_2 Rate limiting plugin limit by header
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         route = service_3_route_2,
                         config = limit_by_service_config,
                     }
@@ -904,7 +904,7 @@ for _, strategy in helpers.each_strategy() do
                     assert(helpers.start_kong({
                         database   = strategy,
                         nginx_conf = "spec/fixtures/custom_nginx.template",
-                        plugins = "bundled,scalable-rate-limiter",
+                        plugins = "bundled,quizizz-scalable-rate-limiter",
                     }))
                 end)
 
@@ -945,7 +945,7 @@ for _, strategy in helpers.each_strategy() do
                 lazy_setup(function()
                     helpers.kill_all()
 
-                    bp, db = helpers.get_db_utils(strategy, nil, { "scalable-rate-limiter" })
+                    bp, db = helpers.get_db_utils(strategy, nil, { "quizizz-scalable-rate-limiter" })
 
                     -- Add request termination plugin at global level to return 200 response for all api calls
                     bp.plugins:insert {
@@ -972,7 +972,7 @@ for _, strategy in helpers.each_strategy() do
                     }
                     -- service_1_route_1 Rate limiting plugin limit by consumer
                     bp.plugins:insert {
-                        name = "scalable-rate-limiter",
+                        name = "quizizz-scalable-rate-limiter",
                         route = service_1_route_1,
                         config = limit_by_consumer_config,
                     }
@@ -980,7 +980,7 @@ for _, strategy in helpers.each_strategy() do
                     assert(helpers.start_kong({
                         database   = strategy,
                         nginx_conf = "spec/fixtures/custom_nginx.template",
-                        plugins    = "bundled,scalable-rate-limiter",
+                        plugins    = "bundled,quizizz-scalable-rate-limiter",
                     }))
                 end)
 
