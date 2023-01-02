@@ -188,8 +188,20 @@ function RateLimitingHandler:access(conf)
         -- If get_usage succeeded and limit has been crossed
         if usage and stop then
             headers = headers or {}
-            headers[RATELIMIT_EXCEEDED] = true
-            kong.log.warn("Rate limit exceeded for identifier ", identifier)
+
+            if conf.shadow_mode_enabled then
+                if conf.shadow_mode_include_response_header then
+                    headers[conf.shadow_mode_response_header_name] = true
+                end
+                if conf.shadow_mode_verbose_logging then
+                    kong.log.warn("Rate limit exceeded for identifier ", identifier)
+                end
+            else
+                kong.log.err("API rate limit exceeded")
+                headers[RETRY_AFTER] = reset
+                return kong.response.exit(429, { error = { message = conf.error_message }}, headers)
+            end
+
         end
 
         if headers then

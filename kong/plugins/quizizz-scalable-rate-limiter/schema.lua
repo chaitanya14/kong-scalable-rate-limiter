@@ -173,6 +173,34 @@ return {
                             custom_validator = validate_limits_per_consumer_config
                         }
                     },
+                    {
+                        shadow_mode_enabled = {
+                            type = "boolean",
+                            required = false,
+                            default = true,
+                        }
+                    },
+                    {
+                        shadow_mode_verbose_logging = {
+                            type = "boolean",
+                            required = false,
+                            default = true,
+                        }
+                    },
+                    {
+                        shadow_mode_include_response_header = {
+                            type = "boolean",
+                            required = false,
+                            default = true,
+                        }
+                    },
+                    {
+                        shadow_mode_response_header_name = {
+                            type = "string",
+                            required = false,
+                            default = "RateLimit-Exceeded",
+                        }
+                    },
                 },
                 custom_validator = validate_periods_order,
             },
