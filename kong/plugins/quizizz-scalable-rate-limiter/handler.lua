@@ -45,13 +45,35 @@ RateLimitingHandler.VERSION = "2.2.0"
 RateLimitingHandler.PRIORITY = tonumber(os.getenv("PRIORITY_SCALABLE_RATE_LIMITER")) or 960
 kong.log.info("Plugin priority set to " .. RateLimitingHandler.PRIORITY .. (os.getenv("PRIORITY_SCALABLE_RATE_LIMITER") and " from env" or " by default"))
 
+local function remove_last_ip(ips)
+    local _, ip_count = string.gsub(ips, " ", "")
+    ip_count = ip_count + 1
+
+    new_identifier = ""
+    j = 0
+    for i in string.gmatch(ips, "%S+") do
+        if j == ip_count - 1 then
+            break
+        end
+        j = j + 1
+        new_identifier = new_identifier .. ":" .. i
+    end
+
+    return new_identifier
+end
+
 local function get_identifier(conf)
     local identifier
 
     if conf.limit_by == "service" then
         identifier = (kong.router.get_service() or EMPTY).id
     elseif conf.limit_by == "header" then
-        identifier = kong.request.get_header(conf.header_name)
+        if conf.header_name == "x-forwarded-for" then
+            identifier = remove_last_ip(kong.request.get_header(conf.header_name))
+        else
+            identifier = kong.request.get_header(conf.header_name)
+        end
+
     elseif conf.limit_by == "consumer" then
         identifier = kong.request.get_header("X-Consumer-Username")
     end
@@ -141,6 +163,8 @@ function RateLimitingHandler:access(conf)
     if err then
         kong.log.err("failed to get usage: ", tostring(err))
     end
+
+    kong.log.info("Identifier - ", identifier, limits)
 
     if usage then
         -- Adding headers
