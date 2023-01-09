@@ -49,8 +49,8 @@ local function remove_last_ip(ips)
     local _, ip_count = string.gsub(ips, " ", "")
     ip_count = ip_count + 1
 
-    new_identifier = ""
-    j = 0
+    local new_identifier = ""
+    local j = 0
     for i in string.gmatch(ips, "%S+") do
         if j == ip_count - 1 then
             break
