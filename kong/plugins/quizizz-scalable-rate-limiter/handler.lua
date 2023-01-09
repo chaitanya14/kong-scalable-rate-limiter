@@ -68,7 +68,7 @@ local function get_identifier(conf)
     if conf.limit_by == "service" then
         identifier = (kong.router.get_service() or EMPTY).id
     elseif conf.limit_by == "header" then
-        if conf.header_name == "x-forwarded-for" and kong.request.get_header(conf.header_name) != nil then
+        if conf.header_name == "x-forwarded-for" and kong.request.get_header(conf.header_name) ~= nil then
             identifier = remove_last_ip(kong.request.get_header(conf.header_name))
         else
             identifier = kong.request.get_header(conf.header_name)
