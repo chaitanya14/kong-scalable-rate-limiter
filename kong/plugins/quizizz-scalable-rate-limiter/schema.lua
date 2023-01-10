@@ -65,11 +65,38 @@ return {
                         limit_by = {
                             type = "string",
                             default = "service",
-                            one_of = { "service", "header", "consumer" },
+                            one_of = { "service", "header", "consumer", "cookie" },
                         },
                     },
                     {
                         header_name = typedefs.header_name,
+                    },
+                    {
+                        cookie_name = {
+                            type = "string",
+                            required = false,
+                        },
+                    },
+                    {
+                        auth_required = {
+                            type = "boolean",
+                            required = false,
+                            default = false,
+                        }
+                    },
+                    {
+                        auth_type = {
+                            type = "string",
+                            default = "cookie",
+                            one_of = { "cookie" },
+                            required = false,
+                        }
+                    },
+                    {
+                        auth_cookie = {
+                            type = "string",
+                            required = false,
+                        }
                     },
                     {
                         policy = {

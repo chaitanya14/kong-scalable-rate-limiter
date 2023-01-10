@@ -62,6 +62,21 @@ local function remove_last_ip(ips)
     return new_identifier
 end
 
+local function get_cookie(cookies, cookie_name)
+    local t={}
+    for str in string.gmatch(cookies, "([^ ]+)") do
+        local cookie_temp = {}
+        for i in string.gmatch(str, "([^=]+)") do
+            table.insert(cookie_temp, i)
+        end
+        if cookie_temp[1] == cookie_name then
+            return cookie_temp[2]
+        end
+    end
+
+    return nil
+end
+
 local function get_identifier(conf)
     local identifier
 
@@ -73,9 +88,13 @@ local function get_identifier(conf)
         else
             identifier = kong.request.get_header(conf.header_name)
         end
-
     elseif conf.limit_by == "consumer" then
         identifier = kong.request.get_header("X-Consumer-Username")
+    elseif conf.limit_by == "cookie" then
+        local cookies = kong.request.get_header("cookie")
+        if cookies ~= nil then
+            identifier = get_cookie(cookies, conf.cookie_name)
+        end
     end
 
     if not identifier then
@@ -131,6 +150,29 @@ local function populate_client_headers(conf, limits_per_consumer)
     return status
 end
 
+local function validate_auth(conf)
+    if not conf.auth_required then
+        kong.log.info("Auth required is false, and hence valid")
+        return true
+    end
+
+    if conf.auth_type == 'cookie' then
+        local cookies = kong.request.get_header("cookie")
+        if cookies ~= nil then
+            local auth_valid = get_cookie(cookies, conf.auth_cookie) ~= nil
+            kong.log.info("Auth validity - ", auth_valid)
+            return auth_valid
+        else
+            kong.log.info("No cookies found, auth is invalid")
+            return false
+        end
+
+    else
+        kong.log.err('Invalid auth type, ', conf.auth_type, '. Auth validity failed')
+        return false
+    end
+end
+
 function RateLimitingHandler:access(conf)
     local current_timestamp = time() * 1000
 
@@ -166,7 +208,7 @@ function RateLimitingHandler:access(conf)
 
     kong.log.info("Identifier - ", identifier, limits)
 
-    if usage then
+    if validate_auth(conf) and usage then
         -- Adding headers
         local reset
         local headers
