@@ -150,26 +150,27 @@ local function populate_client_headers(conf, limits_per_consumer)
     return status
 end
 
-local function validate_auth(conf)
-    if not conf.auth_required then
-        kong.log.info("Auth required is false, and hence valid")
+local function check_auth(conf)
+    if not conf.disable_on_auth then
+        kong.log.info("Disable on auth is false.")
         return true
     end
 
     if conf.auth_type == 'cookie' then
         local cookies = kong.request.get_header("cookie")
         if cookies ~= nil then
-            local auth_valid = get_cookie(cookies, conf.auth_cookie) ~= nil
-            kong.log.info("Auth validity - ", auth_valid)
-            return auth_valid
+            kong.log.info("Cookie result", get_cookie(cookies, conf.auth_cookie))
+            local auth_invalid = get_cookie(cookies, conf.auth_cookie) == nil
+            kong.log.info("disable on auth was true. Auth invalidity - ", auth_invalid)
+            return auth_invalid
         else
-            kong.log.info("No cookies found, auth is invalid")
-            return false
+            kong.log.info("No cookies found, disable on auth was true and auth is invalid")
+            return true
         end
 
     else
-        kong.log.err('Invalid auth type, ', conf.auth_type, '. Auth validity failed')
-        return false
+        kong.log.err('Invalid auth type, ', conf.auth_type, '. disable on auth was true and auth is invalid and auth validity failed')
+        return true
     end
 end
 
@@ -208,7 +209,7 @@ function RateLimitingHandler:access(conf)
 
     kong.log.info("Identifier - ", identifier, limits)
 
-    if validate_auth(conf) and usage then
+    if check_auth(conf) and usage then
         -- Adding headers
         local reset
         local headers

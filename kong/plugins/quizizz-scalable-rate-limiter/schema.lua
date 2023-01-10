@@ -78,7 +78,7 @@ return {
                         },
                     },
                     {
-                        auth_required = {
+                        disable_on_auth = {
                             type = "boolean",
                             required = false,
                             default = false,
