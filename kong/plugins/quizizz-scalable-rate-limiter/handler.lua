@@ -1,6 +1,7 @@
 local policies = require "kong.plugins.quizizz-scalable-rate-limiter.policies"
 local EXPIRATION = require "kong.plugins.quizizz-scalable-rate-limiter.expiration"
 local timestamp = require "kong.tools.timestamp"
+local metrics = require "kong.plugins.quizizz-scalable-rate-limiter.metrics"
 
 local kong = kong
 local ngx = ngx
@@ -174,6 +175,10 @@ local function check_auth(conf)
     end
 end
 
+function RateLimitingHandler:init_worker(conf)
+    metrics.init()
+end
+
 function RateLimitingHandler:access(conf)
     local current_timestamp = time() * 1000
 
@@ -251,6 +256,13 @@ function RateLimitingHandler:access(conf)
           headers[RATELIMIT_REMAINING] = remaining
           headers[RATELIMIT_RESET] = reset
         end
+
+        metrics.increment_counter(
+            conf.rate_limiter_name,
+            conf.limit_by,
+            kong.router.get_route()['name'],
+            kong.router.get_service()['name']
+        )
 
         -- If get_usage succeeded and limit has been crossed
         if usage and stop then

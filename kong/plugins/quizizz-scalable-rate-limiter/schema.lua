@@ -38,6 +38,12 @@ return {
                 type = "record",
                 fields = {
                     {
+                        rate_limiter_name = {
+                            type = "string",
+                            required = true
+                        }
+                    },
+                    {
                         second = {
                             type = "number",
                             gt = 0,
