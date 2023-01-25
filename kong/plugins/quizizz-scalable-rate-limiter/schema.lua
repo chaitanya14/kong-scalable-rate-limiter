@@ -38,70 +38,123 @@ return {
                 type = "record",
                 fields = {
                     {
-                        rate_limiter_name = {
-                            type = "string",
-                            required = true
-                        }
-                    },
-                    {
-                        second = {
-                            type = "number",
-                            gt = 0,
-                        },
-                    },
-                    {
-                        minute = {
-                            type = "number",
-                            gt = 0,
-                        },
-                    },
-                    {
-                        hour = {
-                            type = "number",
-                            gt = 0,
-                        },
-                    },
-                    {
-                        day = {
-                            type = "number",
-                            gt = 0,
-                        },
-                    },
-                    {
-                        limit_by = {
-                            type = "string",
-                            default = "service",
-                            one_of = { "service", "header", "consumer", "cookie" },
-                        },
-                    },
-                    {
-                        header_name = typedefs.header_name,
-                    },
-                    {
-                        cookie_name = {
-                            type = "string",
-                            required = false,
-                        },
-                    },
-                    {
-                        disable_on_auth = {
-                            type = "boolean",
-                            required = false,
-                            default = false,
-                        }
-                    },
-                    {
-                        auth_type = {
-                            type = "string",
-                            default = "cookie",
-                            one_of = { "cookie" },
-                            required = false,
-                        }
-                    },
-                    {
-                        auth_cookie = {
-                            type = "string",
-                            required = false,
+                        rate_limiters = {
+                            type = "array",
+                            elements = {
+                                type = "record",
+                                fields = {
+                                    {
+                                        rate_limiter_name = {
+                                            type = "string",
+                                            required = true
+                                        }
+                                    },
+                                    {
+                                        second = {
+                                            type = "number",
+                                            gt = 0,
+                                            required = false,
+                                        },
+                                    },
+                                    {
+                                        minute = {
+                                            type = "number",
+                                            gt = 0,
+                                            required = false,
+                                        },
+                                    },
+                                    {
+                                        hour = {
+                                            type = "number",
+                                            gt = 0,
+                                            required = false,
+                                        },
+                                    },
+                                    {
+                                        day = {
+                                            type = "number",
+                                            gt = 0,
+                                            required = false,
+                                        },
+                                    },
+                                    {
+                                        limit_by = {
+                                            type = "string",
+                                            default = "service",
+                                            one_of = { "service", "header", "consumer", "cookie" },
+                                            required = false,
+                                        },
+                                    },
+                                    {
+                                        header_name = typedefs.header_name,
+                                    },
+                                    {
+                                        cookie_name = {
+                                            type = "string",
+                                            required = false,
+                                            required = false,
+                                        },
+                                    },
+                                    {
+                                        disable_on_auth = {
+                                            type = "boolean",
+                                            required = false,
+                                            default = false,
+                                            required = false,
+                                        }
+                                    },
+                                    {
+                                        auth_type = {
+                                            type = "string",
+                                            default = "cookie",
+                                            one_of = { "cookie" },
+                                            required = false,
+                                        }
+                                    },
+                                    {
+                                        auth_cookie = {
+                                            type = "string",
+                                            required = false,
+                                        }
+                                    },
+                                    {
+                                        shadow_mode_enabled = {
+                                            type = "boolean",
+                                            required = false,
+                                            default = true,
+                                        }
+                                    },
+                                    {
+                                        shadow_mode_verbose_logging = {
+                                            type = "boolean",
+                                            required = false,
+                                            default = true,
+                                        }
+                                    },
+                                    {
+                                        shadow_mode_include_response_header = {
+                                            type = "boolean",
+                                            required = false,
+                                            default = true,
+                                        }
+                                    },
+                                    {
+                                        shadow_mode_response_header_name = {
+                                            type = "string",
+                                            required = false,
+                                            default = "RateLimit-Exceeded",
+                                        }
+                                    },
+                                    {
+                                        block_access_on_error = {
+                                            type = "boolean",
+                                            required = false,
+                                            default = true
+                                        }
+                                    }
+                                },
+                                custom_validator = validate_periods_order,
+                            }
                         }
                     },
                     {
@@ -206,51 +259,11 @@ return {
                             custom_validator = validate_limits_per_consumer_config
                         }
                     },
-                    {
-                        shadow_mode_enabled = {
-                            type = "boolean",
-                            required = false,
-                            default = true,
-                        }
-                    },
-                    {
-                        shadow_mode_verbose_logging = {
-                            type = "boolean",
-                            required = false,
-                            default = true,
-                        }
-                    },
-                    {
-                        shadow_mode_include_response_header = {
-                            type = "boolean",
-                            required = false,
-                            default = true,
-                        }
-                    },
-                    {
-                        shadow_mode_response_header_name = {
-                            type = "string",
-                            required = false,
-                            default = "RateLimit-Exceeded",
-                        }
-                    },
                 },
-                custom_validator = validate_periods_order,
             },
         },
     },
     entity_checks = {
-        { conditional_at_least_one_of = {
-            if_field = "config.limit_by",
-            if_match = { one_of = { "service", "header" } },
-            then_at_least_one_of = {
-                "config.second",
-                "config.minute",
-                "config.hour",
-                "config.day",
-            },
-            then_err = "must set one of %s when 'limit_by' is 'service' or 'header'",
-        } },
         {
             conditional = {
                 if_field = "config.policy",
@@ -258,22 +271,6 @@ return {
                 then_field = "config.batch_size",
                 then_match = { required = true },
             },
-        },
-        {
-            conditional = {
-                if_field = "config.limit_by",
-                if_match = { one_of = { "consumer", "header" } },
-                then_field = "config.header_name",
-                then_match = { required = true },
-            },
-        },
-        {
-            conditional = {
-                if_field = "config.limit_by",
-                if_match = { eq = "consumer" },
-                then_field = "config.limit_by_consumer_config",
-                then_match = { required = true },
-            },
-        },
+        }
     },
 }

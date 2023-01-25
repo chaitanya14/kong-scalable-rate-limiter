@@ -78,23 +78,23 @@ local function get_cookie(cookies, cookie_name)
     return nil
 end
 
-local function get_identifier(conf)
+local function get_identifier(rate_limit_conf)
     local identifier
 
-    if conf.limit_by == "service" then
+    if rate_limit_conf.limit_by == "service" then
         identifier = (kong.router.get_service() or EMPTY).id
-    elseif conf.limit_by == "header" then
-        if conf.header_name == "x-forwarded-for" and kong.request.get_header(conf.header_name) ~= nil then
-            identifier = remove_last_ip(kong.request.get_header(conf.header_name))
+    elseif rate_limit_conf.limit_by == "header" then
+        if rate_limit_conf.header_name == "x-forwarded-for" and kong.request.get_header(rate_limit_conf.header_name) ~= nil then
+            identifier = remove_last_ip(kong.request.get_header(rate_limit_conf.header_name))
         else
-            identifier = kong.request.get_header(conf.header_name)
+            identifier = kong.request.get_header(rate_limit_conf.header_name)
         end
-    elseif conf.limit_by == "consumer" then
+    elseif rate_limit_conf.limit_by == "consumer" then
         identifier = kong.request.get_header("X-Consumer-Username")
-    elseif conf.limit_by == "cookie" then
+    elseif rate_limit_conf.limit_by == "cookie" then
         local cookies = kong.request.get_header("cookie")
         if cookies ~= nil then
-            identifier = get_cookie(cookies, conf.cookie_name)
+            identifier = get_cookie(cookies, rate_limit_conf.cookie_name)
         end
     end
 
@@ -102,7 +102,7 @@ local function get_identifier(conf)
         return nil, "No rate-limiting identifier found in request"
     end
 
-    return identifier or kong.client.get_forwarded_ip()
+    return rate_limit_conf.rate_limiter_name .. identifier
 end
 
 local function get_usage(conf, identifier, current_timestamp, limits)
@@ -151,7 +151,14 @@ local function populate_client_headers(conf, limits_per_consumer)
     return status
 end
 
-local function check_auth(conf)
+-- This function checks if auth logic is valid or not,
+-- based on which should this rate limiter run
+-- If auth is not valid, then this rate limiter should not be used
+-- disable_on_auth    |    auth_cookie found and is not nil   => auth_valid(return value)
+-- FALSE              |    ANY                                => TRUE
+-- TRUE               |    TRUE                               => FALSE
+-- TRUE               |    FALSE                              => TRUE
+local function is_auth_invalid(conf)
     if not conf.disable_on_auth then
         kong.log.info("Disable on auth is false.")
         return true
@@ -161,46 +168,42 @@ local function check_auth(conf)
         local cookies = kong.request.get_header("cookie")
         if cookies ~= nil then
             kong.log.info("Cookie result", get_cookie(cookies, conf.auth_cookie))
-            local auth_invalid = get_cookie(cookies, conf.auth_cookie) == nil
-            kong.log.info("disable on auth was true. Auth invalidity - ", auth_invalid)
-            return auth_invalid
+            local auth_valid = get_cookie(cookies, conf.auth_cookie) ~= nil
+            kong.log.info("disable on auth was true. Auth validity - ", auth_valid)
+            return not auth_valid
         else
             kong.log.info("No cookies found, disable on auth was true and auth is invalid")
             return true
         end
 
     else
-        kong.log.err('Invalid auth type, ', conf.auth_type, '. disable on auth was true and auth is invalid and auth validity failed')
+        kong.log.err('Invalid auth type, ', conf.auth_type, '. disable on auth was true and auth is invalid, auth validity failed')
         return true
     end
 end
 
-function RateLimitingHandler:init_worker(conf)
-    metrics.init()
-end
-
-function RateLimitingHandler:access(conf)
+local function check_ratelimit_reached(conf, rate_limit_conf)
     local current_timestamp = time() * 1000
 
     -- Consumer is identified by ip address or authenticated_credential id
-    local identifier, err = get_identifier(conf)
+    local identifier, err = get_identifier(rate_limit_conf)
 
     if err then
         kong.log.err(err)
-        return
+        return rate_limit_conf.block_access_on_error
     end
 
     -- Load current metric for configured period
     local limits = {
-        second = conf.second,
-        minute = conf.minute,
-        hour = conf.hour,
-        day = conf.day
+        second = rate_limit_conf.second,
+        minute = rate_limit_conf.minute,
+        hour = rate_limit_conf.hour,
+        day = rate_limit_conf.day
     }
 
     local limits_per_consumer
-    if conf.limit_by == "consumer" then
-        limits_per_consumer = cjson.decode(conf.limit_by_consumer_config)[kong.request.get_header("X-Consumer-Username")]
+    if rate_limit_conf.limit_by == "consumer" then
+        limits_per_consumer = cjson.decode(rate_limit_conf.limit_by_consumer_config)[kong.request.get_header("X-Consumer-Username")]
         if limits_per_consumer ~= nil then
             limits = limits_per_consumer
         end
@@ -214,7 +217,11 @@ function RateLimitingHandler:access(conf)
 
     kong.log.info("Identifier - ", identifier, limits)
 
-    if check_auth(conf) and usage then
+    if not usage then
+        return rate_limit_conf.block_access_on_error
+    end
+
+    if is_auth_invalid(rate_limit_conf) then
         -- Adding headers
         local reset
         local headers
@@ -258,8 +265,8 @@ function RateLimitingHandler:access(conf)
         end
 
         metrics.increment_counter(
-            conf.rate_limiter_name,
-            conf.limit_by,
+            rate_limit_conf.rate_limiter_name,
+            rate_limit_conf.limit_by,
             kong.router.get_route()['name'],
             kong.router.get_service()['name']
         )
@@ -268,17 +275,20 @@ function RateLimitingHandler:access(conf)
         if usage and stop then
             headers = headers or {}
 
-            if conf.shadow_mode_enabled then
-                if conf.shadow_mode_include_response_header then
-                    headers[conf.shadow_mode_response_header_name] = true
+            if rate_limit_conf.shadow_mode_enabled then
+                if rate_limit_conf.shadow_mode_include_response_header then
+                    headers[rate_limit_conf.shadow_mode_response_header_name] = true
                 end
-                if conf.shadow_mode_verbose_logging then
+                if rate_limit_conf.shadow_mode_verbose_logging then
                     kong.log.warn("Rate limit exceeded for identifier ", identifier)
                 end
+                kong.response.set_headers(headers)
+                return false
             else
                 kong.log.err("API rate limit exceeded")
                 headers[RETRY_AFTER] = reset
-                return kong.response.exit(429, { error = { message = conf.error_message }}, headers)
+                kong.response.set_headers(headers)
+                return true
             end
 
         end
@@ -292,6 +302,22 @@ function RateLimitingHandler:access(conf)
         local ok, err = timer_at(0, increment, conf, limits, identifier, current_timestamp, 1)
         if not ok then
             kong.log.err("failed to create timer: ", err)
+        end
+    end
+
+    return false
+end
+
+function RateLimitingHandler:init_worker(conf)
+    metrics.init()
+end
+
+function RateLimitingHandler:access(conf)
+    for key, rate_limiter in ipairs(conf.rate_limiters)
+    do
+        limit_reached = check_ratelimit_reached(conf, rate_limiter)
+        if limit_reached then
+            return kong.response.exit(429, { error = { message = conf.error_message .. rate_limiter.rate_limiter_name }})
         end
     end
 end
