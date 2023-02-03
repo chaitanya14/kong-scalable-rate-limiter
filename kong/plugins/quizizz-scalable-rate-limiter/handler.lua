@@ -77,7 +77,7 @@ local function get_identifier(rate_limit_conf)
         return nil, "No rate-limiting identifier found in request"
     end
 
-    return rate_limit_conf.rate_limiter_name .. identifier
+    return rate_limit_conf.rate_limiter_name .. ':' .. identifier
 end
 
 local function get_usage(conf, identifier, current_timestamp, limits)
@@ -129,11 +129,11 @@ end
 -- This function checks if auth logic is valid or not,
 -- based on which should this rate limiter run
 -- If auth is not valid, then this rate limiter should not be used
--- disable_on_auth    |    auth_cookie found and is not nil   => auth_valid(return value)
+-- disable_on_auth    |    auth_cookie found and is not nil   => auth_check(return value)
 -- FALSE              |    ANY                                => TRUE
 -- TRUE               |    TRUE                               => FALSE
 -- TRUE               |    FALSE                              => TRUE
-local function is_auth_invalid(conf)
+local function auth_check(conf)
     if not conf.disable_on_auth then
         kong.log.info("Disable on auth is false.")
         return true
@@ -152,7 +152,7 @@ local function is_auth_invalid(conf)
         end
 
     else
-        kong.log.err('Invalid auth type, ', conf.auth_type, '. disable on auth was true and auth is invalid, auth validity failed')
+        kong.log.err('Invalid auth type, ', conf.auth_type, '. disable on auth was true and auth is invalid')
         return true
     end
 end
@@ -196,7 +196,7 @@ local function check_ratelimit_reached(conf, rate_limit_conf)
         return rate_limit_conf.block_access_on_error
     end
 
-    if is_auth_invalid(rate_limit_conf) then
+    if auth_check(rate_limit_conf) then
         -- Adding headers
         local reset
         local headers
@@ -226,11 +226,6 @@ local function check_ratelimit_reached(conf, rate_limit_conf)
                 kong.response.set_headers(headers)
                 return true
             end
-
-        end
-
-        if headers then
-            kong.response.set_headers(headers)
         end
     end
 
