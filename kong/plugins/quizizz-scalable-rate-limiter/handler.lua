@@ -19,25 +19,24 @@ local RATELIMIT_LIMIT     = "RateLimit-Limit"
 local RATELIMIT_REMAINING = "RateLimit-Remaining"
 local RATELIMIT_RESET     = "RateLimit-Reset"
 local RETRY_AFTER         = "Retry-After"
-local RATELIMIT_EXCEEDED  = "RateLimit-Exceeded"
-
+local RATELIMITERS_APPLIED = "X-RateLimits-Applied"
 
 local X_RATELIMIT_LIMIT = {
-  second = "X-RateLimit-Limit-Second",
-  minute = "X-RateLimit-Limit-Minute",
-  hour   = "X-RateLimit-Limit-Hour",
-  day    = "X-RateLimit-Limit-Day",
-  month  = "X-RateLimit-Limit-Month",
-  year   = "X-RateLimit-Limit-Year",
+  second = "RateLimit-Limit-Second",
+  minute = "RateLimit-Limit-Minute",
+  hour   = "RateLimit-Limit-Hour",
+  day    = "RateLimit-Limit-Day",
+  month  = "RateLimit-Limit-Month",
+  year   = "RateLimit-Limit-Year",
 }
 
 local X_RATELIMIT_REMAINING = {
-  second = "X-RateLimit-Remaining-Second",
-  minute = "X-RateLimit-Remaining-Minute",
-  hour   = "X-RateLimit-Remaining-Hour",
-  day    = "X-RateLimit-Remaining-Day",
-  month  = "X-RateLimit-Remaining-Month",
-  year   = "X-RateLimit-Remaining-Year",
+  second = "RateLimit-Remaining-Second",
+  minute = "RateLimit-Remaining-Minute",
+  hour   = "RateLimit-Remaining-Hour",
+  day    = "RateLimit-Remaining-Day",
+  month  = "RateLimit-Remaining-Month",
+  year   = "RateLimit-Remaining-Year",
 }
 
 local RateLimitingHandler = {}
@@ -182,6 +181,10 @@ local function auth_check(conf)
     end
 end
 
+local function check_ratelimiter_applied(rate_limit_conf)
+    return auth_check(rate_limit_conf)
+end
+
 local function check_ratelimit_reached(conf, rate_limit_conf)
     local current_timestamp = time() * 1000
 
@@ -224,9 +227,8 @@ local function check_ratelimit_reached(conf, rate_limit_conf)
     if auth_check(rate_limit_conf) then
         -- Adding headers
         local reset
-        local headers
-        if populate_client_headers then
-          headers = {}
+        local headers = {}
+        if rate_limit_conf.verbose_client_headers then
           local timestamps
           local limit
           local window
@@ -255,13 +257,13 @@ local function check_ratelimit_reached(conf, rate_limit_conf)
               reset = max(1, window - floor((current_timestamp - timestamps[k]) / 1000))
             end
 
-            headers[X_RATELIMIT_LIMIT[k]] = current_limit
-            headers[X_RATELIMIT_REMAINING[k]] = current_remaining
+            headers['X-' .. rate_limit_conf.rate_limiter_name .. '-' .. X_RATELIMIT_LIMIT[k]] = current_limit
+            headers['X-' .. rate_limit_conf.rate_limiter_name .. '-' .. X_RATELIMIT_REMAINING[k]] = current_remaining
           end
 
-          headers[RATELIMIT_LIMIT] = limit
-          headers[RATELIMIT_REMAINING] = remaining
-          headers[RATELIMIT_RESET] = reset
+          headers['X-' .. rate_limit_conf.rate_limiter_name .. '-' .. RATELIMIT_LIMIT] = limit
+          headers['X-' .. rate_limit_conf.rate_limiter_name .. '-' .. RATELIMIT_REMAINING] = remaining
+          headers['X-' .. rate_limit_conf.rate_limiter_name .. '-' .. RATELIMIT_RESET] = reset
         end
 
         metrics.increment_counter(
@@ -286,11 +288,13 @@ local function check_ratelimit_reached(conf, rate_limit_conf)
                 return false
             else
                 kong.log.err("API rate limit exceeded")
-                headers[RETRY_AFTER] = reset
+                headers['X-' .. rate_limit_conf.rate_limiter_name .. '-' .. RETRY_AFTER] = reset
                 kong.response.set_headers(headers)
                 return true
             end
         end
+
+        kong.response.set_headers(headers)
     end
 
     kong.ctx.plugin.timer = function()
@@ -308,9 +312,23 @@ function RateLimitingHandler:init_worker(conf)
 end
 
 function RateLimitingHandler:access(conf)
+    if conf.rate_limiters_applied_header then
+        local rate_limiters_applied = ""
+        for key, rate_limiter in ipairs(conf.rate_limiters)
+        do
+            if check_ratelimiter_applied(rate_limiter) then
+                rate_limiters_applied = rate_limiters_applied .. rate_limiter.rate_limiter_name .. ","
+            end
+        end
+
+        local headers = {}
+        headers[RATELIMITERS_APPLIED] = rate_limiters_applied
+        kong.response.set_headers(headers)
+    end
+
     for key, rate_limiter in ipairs(conf.rate_limiters)
     do
-        limit_reached = check_ratelimit_reached(conf, rate_limiter)
+        local limit_reached = check_ratelimit_reached(conf, rate_limiter)
         if limit_reached then
             return kong.response.exit(429, { error = { message = conf.error_message .. rate_limiter.rate_limiter_name }})
         end

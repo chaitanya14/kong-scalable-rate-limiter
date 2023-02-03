@@ -151,6 +151,13 @@ return {
                                             required = false,
                                             default = true
                                         }
+                                    },
+                                    {
+                                        verbose_client_headers = {
+                                            type = "boolean",
+                                            required = false,
+                                            default = true
+                                        }
                                     }
                                 },
                                 custom_validator = validate_periods_order,
@@ -259,6 +266,13 @@ return {
                             custom_validator = validate_limits_per_consumer_config
                         }
                     },
+                    {
+                        rate_limiters_applied_header = {
+                            type = "boolean",
+                            required = false,
+                            default = true,
+                        }
+                    }
                 },
             },
         },
