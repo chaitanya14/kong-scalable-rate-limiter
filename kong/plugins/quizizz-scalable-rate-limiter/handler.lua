@@ -20,6 +20,9 @@ local RATELIMIT_REMAINING = "RateLimit-Remaining"
 local RATELIMIT_RESET     = "RateLimit-Reset"
 local RETRY_AFTER         = "Retry-After"
 local RATELIMITERS_APPLIED = "X-RateLimits-Applied"
+local WHITELISTED_IP_HEADER = "X-Whitelisted-IP"
+
+local WHITELISTED_IPS_SET_KEY = "whitelisted_ips"
 
 local X_RATELIMIT_LIMIT = {
   second = "RateLimit-Limit-Second",
@@ -83,11 +86,7 @@ local function get_identifier(rate_limit_conf)
     if rate_limit_conf.limit_by == "service" then
         identifier = (kong.router.get_service() or EMPTY).id
     elseif rate_limit_conf.limit_by == "header" then
-        if rate_limit_conf.header_name == "x-forwarded-for" and kong.request.get_header(rate_limit_conf.header_name) ~= nil then
-            identifier = remove_last_ip(kong.request.get_header(rate_limit_conf.header_name))
-        else
-            identifier = kong.request.get_header(rate_limit_conf.header_name)
-        end
+        identifier = kong.request.get_header(rate_limit_conf.header_name)
     elseif rate_limit_conf.limit_by == "consumer" then
         identifier = kong.request.get_header("X-Consumer-Username")
     elseif rate_limit_conf.limit_by == "cookie" then
@@ -181,6 +180,14 @@ local function auth_check(conf)
     end
 end
 
+local function check_is_ip_whitelisted(conf)
+    if kong.request.get_header('x-forwarded-for') == nil then
+        return false
+    end
+
+    return policies[conf.policy].check_in_whitelist(conf, WHITELISTED_IPS_SET_KEY, kong.request.get_header('x-forwarded-for'))
+end
+
 local function check_ratelimiter_applied(rate_limit_conf)
     return auth_check(rate_limit_conf)
 end
@@ -212,15 +219,12 @@ local function check_ratelimit_reached(conf, rate_limit_conf)
         end
     end
 
-    local usage, stop, err = get_usage(conf, identifier, current_timestamp, limits)
-
-    if err then
-        kong.log.err("failed to get usage: ", tostring(err))
-    end
-
     kong.log.info("Identifier - ", identifier, limits)
 
-    if not usage then
+    local usage, stop, err = get_usage(conf, identifier, current_timestamp, limits)
+
+    if err or not usage then
+        kong.log.err("failed to get usage: ", tostring(err))
         return rate_limit_conf.block_access_on_error
     end
 
@@ -312,6 +316,15 @@ function RateLimitingHandler:init_worker(conf)
 end
 
 function RateLimitingHandler:access(conf)
+    -- Check if the IP is whitelisted
+    if check_is_ip_whitelisted(conf) then
+        headers = {}
+        headers[WHITELISTED_IP_HEADER] = true
+        kong.response.set_headers(headers)
+        return
+    end
+
+    -- Add a header for which rate limiters are applied in priority
     if conf.rate_limiters_applied_header then
         local rate_limiters_applied = ""
         for key, rate_limiter in ipairs(conf.rate_limiters)
@@ -326,6 +339,7 @@ function RateLimitingHandler:access(conf)
         kong.response.set_headers(headers)
     end
 
+    -- Check rate limits and stop on the first rate limiter that fails
     for key, rate_limiter in ipairs(conf.rate_limiters)
     do
         local limit_reached = check_ratelimit_reached(conf, rate_limiter)
