@@ -15,6 +15,31 @@ local cjson = require "cjson"
 
 local EMPTY = {}
 
+local RATELIMIT_LIMIT     = "RateLimit-Limit"
+local RATELIMIT_REMAINING = "RateLimit-Remaining"
+local RATELIMIT_RESET     = "RateLimit-Reset"
+local RETRY_AFTER         = "Retry-After"
+local RATELIMIT_EXCEEDED  = "RateLimit-Exceeded"
+
+
+local X_RATELIMIT_LIMIT = {
+  second = "X-RateLimit-Limit-Second",
+  minute = "X-RateLimit-Limit-Minute",
+  hour   = "X-RateLimit-Limit-Hour",
+  day    = "X-RateLimit-Limit-Day",
+  month  = "X-RateLimit-Limit-Month",
+  year   = "X-RateLimit-Limit-Year",
+}
+
+local X_RATELIMIT_REMAINING = {
+  second = "X-RateLimit-Remaining-Second",
+  minute = "X-RateLimit-Remaining-Minute",
+  hour   = "X-RateLimit-Remaining-Hour",
+  day    = "X-RateLimit-Remaining-Day",
+  month  = "X-RateLimit-Remaining-Month",
+  year   = "X-RateLimit-Remaining-Year",
+}
+
 local RateLimitingHandler = {}
 
 RateLimitingHandler.VERSION = "2.2.0"
@@ -200,6 +225,44 @@ local function check_ratelimit_reached(conf, rate_limit_conf)
         -- Adding headers
         local reset
         local headers
+        if populate_client_headers then
+          headers = {}
+          local timestamps
+          local limit
+          local window
+          local remaining
+          for k, v in pairs(usage) do
+            local current_limit = v.limit
+            local current_window = EXPIRATION[k]
+            local current_remaining = v.remaining
+            if stop == nil or stop == k then
+              current_remaining = current_remaining - 1
+            end
+            current_remaining = max(0, current_remaining)
+
+            if not limit or (current_remaining < remaining)
+                         or (current_remaining == remaining and
+                             current_window > window)
+            then
+              limit = current_limit
+              window = current_window
+              remaining = current_remaining
+
+              if not timestamps then
+                timestamps = timestamp.get_timestamps(current_timestamp)
+              end
+
+              reset = max(1, window - floor((current_timestamp - timestamps[k]) / 1000))
+            end
+
+            headers[X_RATELIMIT_LIMIT[k]] = current_limit
+            headers[X_RATELIMIT_REMAINING[k]] = current_remaining
+          end
+
+          headers[RATELIMIT_LIMIT] = limit
+          headers[RATELIMIT_REMAINING] = remaining
+          headers[RATELIMIT_RESET] = reset
+        end
 
         metrics.increment_counter(
             rate_limit_conf.rate_limiter_name,
@@ -223,6 +286,7 @@ local function check_ratelimit_reached(conf, rate_limit_conf)
                 return false
             else
                 kong.log.err("API rate limit exceeded")
+                headers[RETRY_AFTER] = reset
                 kong.response.set_headers(headers)
                 return true
             end
