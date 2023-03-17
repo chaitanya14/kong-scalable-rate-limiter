@@ -36,13 +36,21 @@ local EXPIRATION = require "kong.plugins.quizizz-scalable-rate-limiter.expiratio
 
 return {
     ["redis"] = {
-        check_in_whitelist = function(conf, key, ip)
+        get_whitelist_cidrs = function(conf, key)
             local red, err = connection.get_redis_conn_pool(conf)
             if not red then
                 return nil, err
             end
 
-            return red:sismember(key, ip) == 1
+            return red:smembers(key)
+        end,
+        get_blacklist_cidrs = function(conf, key)
+            local red, err = connection.get_redis_conn_pool(conf)
+            if not red then
+                return nil, err
+            end
+
+            return red:smembers(key)
         end,
         increment = function(conf, limits, identifier, current_timestamp, value)
             local red, err = connection.get_redis_conn_pool(conf)
@@ -88,7 +96,12 @@ return {
         end,
     },
     ["batch-redis"] = {
-        check_in_whitelist = function(conf, key, ip)
+        get_whitelist_cidrs = function(conf, key)
+            kong.log.err('ERROR: Method not supported')
+
+            return false
+        end,
+        get_blacklist_cidrs = function(conf, key)
             kong.log.err('ERROR: Method not supported')
 
             return false

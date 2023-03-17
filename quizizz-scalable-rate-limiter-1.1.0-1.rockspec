@@ -24,6 +24,7 @@ build = {
         ["kong.plugins.quizizz-scalable-rate-limiter.schema"] = "kong/plugins/quizizz-scalable-rate-limiter/schema.lua",
         ["kong.plugins.quizizz-scalable-rate-limiter.expiration"] = "kong/plugins/quizizz-scalable-rate-limiter/expiration.lua",
         ["kong.plugins.quizizz-scalable-rate-limiter.metrics"] = "kong/plugins/quizizz-scalable-rate-limiter/metrics.lua",
+        ["kong.plugins.quizizz-scalable-rate-limiter.iputils"] = "kong/plugins/quizizz-scalable-rate-limiter/iputils.lua",
         ["kong.plugins.quizizz-scalable-rate-limiter.policies"] = "kong/plugins/quizizz-scalable-rate-limiter/policies/init.lua",
         ["kong.plugins.quizizz-scalable-rate-limiter.policies.connection"] = "kong/plugins/quizizz-scalable-rate-limiter/policies/connection.lua",
 

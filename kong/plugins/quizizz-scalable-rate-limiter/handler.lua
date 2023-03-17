@@ -2,6 +2,7 @@ local policies = require "kong.plugins.quizizz-scalable-rate-limiter.policies"
 local EXPIRATION = require "kong.plugins.quizizz-scalable-rate-limiter.expiration"
 local timestamp = require "kong.tools.timestamp"
 local metrics = require "kong.plugins.quizizz-scalable-rate-limiter.metrics"
+local iputils = require "kong.plugins.quizizz-scalable-rate-limiter.iputils"
 
 local kong = kong
 local ngx = ngx
@@ -21,8 +22,6 @@ local RATELIMIT_RESET     = "RateLimit-Reset"
 local RETRY_AFTER         = "Retry-After"
 local RATELIMITERS_APPLIED = "X-RateLimits-Applied"
 local WHITELISTED_IP_HEADER = "X-Whitelisted-IP"
-
-local WHITELISTED_IPS_SET_KEY = "whitelisted_ips"
 
 local X_RATELIMIT_LIMIT = {
   second = "RateLimit-Limit-Second",
@@ -47,23 +46,6 @@ local RateLimitingHandler = {}
 RateLimitingHandler.VERSION = "2.2.0"
 RateLimitingHandler.PRIORITY = tonumber(os.getenv("PRIORITY_SCALABLE_RATE_LIMITER")) or 960
 kong.log.info("Plugin priority set to " .. RateLimitingHandler.PRIORITY .. (os.getenv("PRIORITY_SCALABLE_RATE_LIMITER") and " from env" or " by default"))
-
-local function remove_last_ip(ips)
-    local _, ip_count = string.gsub(ips, " ", "")
-    ip_count = ip_count + 1
-
-    local new_identifier = ""
-    local j = 0
-    for i in string.gmatch(ips, "%S+") do
-        if j == ip_count - 1 then
-            break
-        end
-        j = j + 1
-        new_identifier = new_identifier .. ":" .. i
-    end
-
-    return new_identifier
-end
 
 local function get_cookie(cookies, cookie_name)
     local t={}
@@ -178,14 +160,6 @@ local function auth_check(conf)
         kong.log.err('Invalid auth type, ', conf.auth_type, '. disable on auth was true and auth is invalid')
         return true
     end
-end
-
-local function check_is_ip_whitelisted(conf)
-    if kong.request.get_header('x-forwarded-for') == nil then
-        return false
-    end
-
-    return policies[conf.policy].check_in_whitelist(conf, WHITELISTED_IPS_SET_KEY, kong.request.get_header('x-forwarded-for'))
 end
 
 local function check_ratelimiter_applied(rate_limit_conf)
@@ -315,9 +289,14 @@ function RateLimitingHandler:init_worker(conf)
     metrics.init()
 end
 
-function RateLimitingHandler:access(conf)
+function protectedAccess(conf)
+    -- Check if the IP is blacklisted
+    if iputils.check_is_ip_blacklisted(conf) then
+        return kong.response.exit(403, { error = { message = "IP is blacklisted" }})
+    end
+
     -- Check if the IP is whitelisted
-    if check_is_ip_whitelisted(conf) then
+    if iputils.check_is_ip_whitelisted(conf) then
         headers = {}
         headers[WHITELISTED_IP_HEADER] = true
         kong.response.set_headers(headers)
@@ -347,6 +326,17 @@ function RateLimitingHandler:access(conf)
             return kong.response.exit(429, { error = { message = conf.error_message .. rate_limiter.rate_limiter_name }})
         end
     end
+end
+
+function RateLimitingHandler:access(conf)
+    return protectedAccess(conf)
+
+    -- local status, retval = pcall(protectedAccess, conf)
+    -- if status then
+    --     return retval
+    -- else
+    --     kong.log.err("Failed in executing access function for rate limiter")
+    -- end
 end
 
 function RateLimitingHandler:log(_)
