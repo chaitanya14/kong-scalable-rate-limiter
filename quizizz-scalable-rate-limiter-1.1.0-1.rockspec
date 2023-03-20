@@ -27,6 +27,8 @@ build = {
         ["kong.plugins.quizizz-scalable-rate-limiter.iputils"] = "kong/plugins/quizizz-scalable-rate-limiter/iputils.lua",
         ["kong.plugins.quizizz-scalable-rate-limiter.policies"] = "kong/plugins/quizizz-scalable-rate-limiter/policies/init.lua",
         ["kong.plugins.quizizz-scalable-rate-limiter.policies.connection"] = "kong/plugins/quizizz-scalable-rate-limiter/policies/connection.lua",
+        ["kong.plugins.quizizz-scalable-rate-limiter.utils"] = "kong/plugins/quizizz-scalable-rate-limiter/utils.lua",
+        ["kong.plugins.quizizz-scalable-rate-limiter.httputils"] = "kong/plugins/quizizz-scalable-rate-limiter/httputils.lua",
 
         ["resty.rediscluster"] = "kong/plugins/quizizz-scalable-rate-limiter/resty-redis-cluster/rediscluster.lua",
         ["resty.xmodem"] = "kong/plugins/quizizz-scalable-rate-limiter/resty-redis-cluster/xmodem.lua"

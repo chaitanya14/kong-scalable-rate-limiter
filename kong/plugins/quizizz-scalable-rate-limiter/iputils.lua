@@ -34,16 +34,10 @@ local function check_is_ip_blacklisted(conf)
     end
 
     local cidrs = policies[conf.policy].get_blacklist_cidrs(conf, BLACKLISTED_IPS_SET_KEY)
-    print("CIDRs for blacklist")
-    for k, v in pairs(cidrs) do
-        print(k, v)
-    end
 
     local header = kong.request.get_header('x-forwarded-for')
     for i in string.gmatch(header, "[0-9.]+") do
-        print("Matching i", i, ", CIDRs, ")
         if check_ip_matches_cidr(cidrs, i) then
-            print("RETURNING TRUEE!! ")
             return true
         end
     end

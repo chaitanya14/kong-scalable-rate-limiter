@@ -86,6 +86,12 @@ return {
                                         },
                                     },
                                     {
+                                        methods = {
+                                            type = "string",
+                                            required = false,
+                                        },
+                                    },
+                                    {
                                         header_name = typedefs.header_name,
                                     },
                                     {

@@ -3,6 +3,7 @@ local EXPIRATION = require "kong.plugins.quizizz-scalable-rate-limiter.expiratio
 local timestamp = require "kong.tools.timestamp"
 local metrics = require "kong.plugins.quizizz-scalable-rate-limiter.metrics"
 local iputils = require "kong.plugins.quizizz-scalable-rate-limiter.iputils"
+local httputils = require "kong.plugins.quizizz-scalable-rate-limiter.httputils"
 
 local kong = kong
 local ngx = ngx
@@ -163,7 +164,15 @@ local function auth_check(conf)
 end
 
 local function check_ratelimiter_applied(rate_limit_conf)
-    return auth_check(rate_limit_conf)
+    if httputils.check_http_method(rate_limit_conf) == false then
+        return false
+    end
+
+    if auth_check(rate_limit_conf) == false then
+        return false
+    end
+
+    return true
 end
 
 local function check_ratelimit_reached(conf, rate_limit_conf)
