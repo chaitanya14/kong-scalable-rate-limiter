@@ -338,14 +338,14 @@ function protectedAccess(conf)
 end
 
 function RateLimitingHandler:access(conf)
-    return protectedAccess(conf)
+    -- return protectedAccess(conf)
 
-    -- local status, retval = pcall(protectedAccess, conf)
-    -- if status then
-    --     return retval
-    -- else
-    --     kong.log.err("Failed in executing access function for rate limiter")
-    -- end
+    local status, retval = pcall(protectedAccess, conf)
+    if status then
+        return retval
+    else
+        kong.log.err("Failed in executing access function for rate limiter")
+    end
 end
 
 function RateLimitingHandler:log(_)
