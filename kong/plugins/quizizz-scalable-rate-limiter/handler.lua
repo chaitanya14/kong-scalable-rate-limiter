@@ -69,7 +69,11 @@ local function get_identifier(rate_limit_conf)
     if rate_limit_conf.limit_by == "service" then
         identifier = (kong.router.get_service() or EMPTY).id
     elseif rate_limit_conf.limit_by == "header" then
-        identifier = kong.request.get_header(rate_limit_conf.header_name)
+        if rate_limit_conf.header_name == "x-forwarded-for" and kong.request.get_header(rate_limit_conf.header_name) ~= nil then
+            identifier = iputils.remove_last_ip(kong.request.get_header(rate_limit_conf.header_name))
+        else
+            identifier = kong.request.get_header(rate_limit_conf.header_name)
+        end
     elseif rate_limit_conf.limit_by == "consumer" then
         identifier = kong.request.get_header("X-Consumer-Username")
     elseif rate_limit_conf.limit_by == "cookie" then
@@ -175,9 +179,7 @@ local function check_ratelimiter_applied(rate_limit_conf)
     return true
 end
 
-local function check_ratelimit_reached(conf, rate_limit_conf)
-    local current_timestamp = time() * 1000
-
+local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
     -- Consumer is identified by ip address or authenticated_credential id
     local identifier, err = get_identifier(rate_limit_conf)
 
@@ -252,7 +254,6 @@ local function check_ratelimit_reached(conf, rate_limit_conf)
           headers['X-' .. rate_limit_conf.rate_limiter_name .. '-' .. RATELIMIT_REMAINING] = remaining
           headers['X-' .. rate_limit_conf.rate_limiter_name .. '-' .. RATELIMIT_RESET] = reset
         end
-
         metrics.increment_counter(
             rate_limit_conf.rate_limiter_name,
             rate_limit_conf.limit_by,
@@ -282,13 +283,7 @@ local function check_ratelimit_reached(conf, rate_limit_conf)
         end
 
         kong.response.set_headers(headers)
-    end
 
-    kong.ctx.plugin.timer = function()
-        local ok, err = timer_at(0, increment, conf, limits, identifier, current_timestamp, 1)
-        if not ok then
-            kong.log.err("failed to create timer: ", err)
-        end
     end
 
     return false
@@ -299,6 +294,8 @@ function RateLimitingHandler:init_worker(conf)
 end
 
 function protectedAccess(conf)
+    local current_timestamp = time() * 1000
+
     -- Check if the IP is blacklisted
     if iputils.check_is_ip_blacklisted(conf) then
         return kong.response.exit(403, { error = { message = "IP is blacklisted" }})
@@ -330,10 +327,48 @@ function protectedAccess(conf)
     -- Check rate limits and stop on the first rate limiter that fails
     for key, rate_limiter in ipairs(conf.rate_limiters)
     do
-        local limit_reached = check_ratelimit_reached(conf, rate_limiter)
+        local limit_reached = check_ratelimit_reached(conf, rate_limiter, current_timestamp)
         if limit_reached then
             return kong.response.exit(429, { error = { message = conf.error_message .. rate_limiter.rate_limiter_name }})
         end
+    end
+
+    -- Update limits for rate limiter
+    kong.ctx.plugin.timer = function()
+        for key, rate_limiter in ipairs(conf.rate_limiters)
+        do
+            local limits = {
+                second = rate_limiter.second,
+                minute = rate_limiter.minute,
+                hour = rate_limiter.hour,
+                day = rate_limiter.day
+            }
+
+            local limits_per_consumer
+            if rate_limiter.limit_by == "consumer" then
+                limits_per_consumer = cjson.decode(rate_limiter.limit_by_consumer_config)[kong.request.get_header("X-Consumer-Username")]
+                if limits_per_consumer ~= nil then
+                    limits = limits_per_consumer
+                end
+            end
+
+            local identifier, err = get_identifier(rate_limiter)
+            if err then
+                kong.log.err(err)
+                if rate_limit_conf.block_access_on_error then
+                    return kong.response.exit(429, { error = { message = conf.error_message .. rate_limiter.rate_limiter_name }})
+                end
+            end
+
+            local ok, err = timer_at(0, increment, conf, limits, identifier, current_timestamp, 1)
+            if not ok then
+                kong.log.err("failed to create timer: ", err)
+                if rate_limit_conf.block_access_on_error then
+                    return kong.response.exit(429, { error = { message = conf.error_message .. rate_limiter.rate_limiter_name }})
+                end
+            end
+        end
+
     end
 end
 

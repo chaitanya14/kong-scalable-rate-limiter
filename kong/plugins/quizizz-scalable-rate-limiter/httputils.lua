@@ -3,7 +3,6 @@ local utils = require "kong.plugins.quizizz-scalable-rate-limiter.utils"
 local pairs = pairs
 
 local function check_http_method(conf)
-    print("Checking http method, ", conf.methods, ", current method")
     if conf.methods == "" then
         return true
     end
@@ -16,7 +15,6 @@ local function check_http_method(conf)
     local current_method = kong.request.get_method()
 
     for i, method in ipairs(allowed_http_methods) do
-        print("Checking for method, current, ", current_method, ", method, ", method)
         if method == current_method then
             return true
         end
@@ -25,6 +23,25 @@ local function check_http_method(conf)
     return false
 end
 
+local function remove_last_ip(ips)
+    local _, ip_count = string.gsub(ips, " ", "")
+    ip_count = ip_count + 1
+
+    local new_identifier = ""
+    local j = 0
+    for i in string.gmatch(ips, "%S+") do
+        if j == ip_count - 1 then
+            break
+        end
+        j = j + 1
+        new_identifier = new_identifier .. ":" .. i
+    end
+
+    return new_identifier
+end
+
+
 return {
     check_http_method = check_http_method,
+    remove_last_ip = remove_last_ip
 }
