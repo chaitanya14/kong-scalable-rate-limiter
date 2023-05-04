@@ -14,6 +14,8 @@ local timer_at = ngx.timer.at
 local max = math.max
 local floor = math.floor
 local cjson = require "cjson"
+local luatz = require "luatz"
+local gettime = luatz.gettime
 
 local EMPTY = {}
 
@@ -64,6 +66,8 @@ local function get_cookie(cookies, cookie_name)
 end
 
 local function get_identifier(rate_limit_conf)
+    local latency_current_timestamp = time()
+
     local identifier
 
     if rate_limit_conf.limit_by == "service" then
@@ -82,6 +86,8 @@ local function get_identifier(rate_limit_conf)
             identifier = get_cookie(cookies, rate_limit_conf.cookie_name)
         end
     end
+
+    -- kong.log.err('LatencyCheck: get_identifier: ' .. time() - latency_current_timestamp)
 
     if not identifier then
         return nil, "No rate-limiting identifier found in request"
@@ -144,8 +150,11 @@ end
 -- TRUE               |    TRUE                               => FALSE
 -- TRUE               |    FALSE                              => TRUE
 local function auth_check(conf)
+    local latency_current_timestamp = time()
+
     if not conf.disable_on_auth then
         kong.log.info("Disable on auth is false.")
+        -- kong.log.err('LatencyCheck: auth_check: ' .. time() - latency_current_timestamp)
         return true
     end
 
@@ -155,36 +164,49 @@ local function auth_check(conf)
             kong.log.info("Cookie result", get_cookie(cookies, conf.auth_cookie))
             local auth_valid = get_cookie(cookies, conf.auth_cookie) ~= nil
             kong.log.info("disable on auth was true. Auth validity - ", auth_valid)
+            -- kong.log.err('LatencyCheck: auth_check: ' .. time() - latency_current_timestamp)
             return not auth_valid
         else
             kong.log.info("No cookies found, disable on auth was true and auth is invalid")
+            -- kong.log.err('LatencyCheck: auth_check: ' .. time() - latency_current_timestamp)
             return true
         end
 
     else
         kong.log.err('Invalid auth type, ', conf.auth_type, '. disable on auth was true and auth is invalid')
+        -- kong.log.err('LatencyCheck: auth_check: ' .. time() - latency_current_timestamp)
         return true
     end
+
+    -- print('LatencyCheck: auth_check: ' .. time() - latency_current_timestamp)
 end
 
 local function check_ratelimiter_applied(rate_limit_conf)
+    local latency_current_timestamp = time()
+
     if httputils.check_http_method(rate_limit_conf) == false then
+        -- kong.log.err('LatencyCheck: check_ratelimiter_applied: ' .. time() - latency_current_timestamp)
         return false
     end
 
     if auth_check(rate_limit_conf) == false then
+        -- kong.log.err('LatencyCheck: check_ratelimiter_applied: ' .. time() - latency_current_timestamp)
         return false
     end
 
+    -- print('LatencyCheck: check_ratelimiter_applied: ' .. time() - latency_current_timestamp)
     return true
 end
 
 local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
+    local latency_current_timestamp = time()
+
     -- Consumer is identified by ip address or authenticated_credential id
     local identifier, err = get_identifier(rate_limit_conf)
 
     if err then
         kong.log.err(err)
+        -- kong.log.err('LatencyCheck: check_ratelimit_reached: ' .. time() - latency_current_timestamp)
         return rate_limit_conf.block_access_on_error
     end
 
@@ -196,20 +218,13 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
         day = rate_limit_conf.day
     }
 
-    local limits_per_consumer
-    if rate_limit_conf.limit_by == "consumer" then
-        limits_per_consumer = cjson.decode(rate_limit_conf.limit_by_consumer_config)[kong.request.get_header("X-Consumer-Username")]
-        if limits_per_consumer ~= nil then
-            limits = limits_per_consumer
-        end
-    end
-
     kong.log.info("Identifier - ", identifier, limits)
 
     local usage, stop, err = get_usage(conf, identifier, current_timestamp, limits)
 
     if err or not usage then
         kong.log.err("failed to get usage: ", tostring(err))
+        -- kong.log.err('LatencyCheck: check_ratelimit_reached: ' .. time() - latency_current_timestamp .. gettime())
         return rate_limit_conf.block_access_on_error
     end
 
@@ -273,11 +288,13 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
                     kong.log.warn("Rate limit exceeded for identifier ", identifier)
                 end
                 kong.response.set_headers(headers)
+                -- kong.log.err('LatencyCheck: check_ratelimit_reached: ' .. time() - latency_current_timestamp)
                 return false
             else
                 kong.log.err("API rate limit exceeded")
                 headers['X-' .. rate_limit_conf.rate_limiter_name .. '-' .. RETRY_AFTER] = reset
                 kong.response.set_headers(headers)
+                -- kong.log.err('LatencyCheck: check_ratelimit_reached: ' .. time() - latency_current_timestamp)
                 return true
             end
         end
@@ -285,6 +302,8 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
         kong.response.set_headers(headers)
 
     end
+
+    -- kong.log.err('LatencyCheck: check_ratelimit_reached: ' .. time() .. ': ' .. time() - latency_current_timestamp)
 
     return false
 end
