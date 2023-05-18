@@ -16,7 +16,6 @@ local function check_is_ip_whitelisted(conf)
     local latency_current_timestamp = time()
 
     if kong.request.get_header('x-forwarded-for') == nil then
-        -- kong.log.err('LatencyCheck: check_is_ip_whitelisted: ' .. time() - latency_current_timestamp)
         return false
     end
 
@@ -25,12 +24,9 @@ local function check_is_ip_whitelisted(conf)
     local header = kong.request.get_header('x-forwarded-for')
     for i in string.gmatch(header, "[0-9.]+") do
         if check_ip_matches_cidr(cidrs, i) then
-            -- kong.log.err('LatencyCheck: check_is_ip_whitelisted: ' .. time() - latency_current_timestamp)
             return true
         end
     end
-
-    -- kong.log.err('LatencyCheck: check_is_ip_whitelisted: ' .. time() - latency_current_timestamp)
     return false
 end
 
@@ -38,7 +34,6 @@ local function check_is_ip_blacklisted(conf)
     local latency_current_timestamp = time()
 
     if kong.request.get_header('x-forwarded-for') == nil then
-        -- kong.log.err('LatencyCheck: check_is_ip_blacklisted: ' .. time() - latency_current_timestamp)
         return false
     end
 
@@ -47,12 +42,9 @@ local function check_is_ip_blacklisted(conf)
     local header = kong.request.get_header('x-forwarded-for')
     for i in string.gmatch(header, "[0-9.]+") do
         if check_ip_matches_cidr(cidrs, i) then
-            -- kong.log.err('LatencyCheck: check_is_ip_blacklisted: ' .. time() - latency_current_timestamp)
             return true
         end
     end
-
-    -- kong.log.err('LatencyCheck: check_is_ip_blacklisted: ' .. time() - latency_current_timestamp)
     return false
 end
 
