@@ -11,14 +11,14 @@ local function init()
   register.kong_request_ratelimit_reached = prometheus:counter(
     'quizizz_kong_request_rate_limited'
   , 'total requests that have reached a rate limit threshold'
-  , {'rate_limiter_name', 'limited_by', 'service', 'route'}
+  , {'rate_limiter_name', 'limited_by', 'service', 'route', 'identifier'}
   )
 
   return register
 end
 
-local function increment_counter(rate_limiter_name, limited_by, service, route)
-  register.kong_request_ratelimit_reached:inc(1, {rate_limiter_name, limited_by, service, route})
+local function increment_counter(rate_limiter_name, limited_by, service, route, identifier)
+  register.kong_request_ratelimit_reached:inc(1, {rate_limiter_name, limited_by, service, route, identifier})
 
 end
 

@@ -273,7 +273,8 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
             rate_limit_conf.rate_limiter_name,
             rate_limit_conf.limit_by,
             kong.router.get_route()['name'],
-            kong.router.get_service()['name']
+            kong.router.get_service()['name'],
+            identifier
         )
 
         -- If get_usage succeeded and limit has been crossed
