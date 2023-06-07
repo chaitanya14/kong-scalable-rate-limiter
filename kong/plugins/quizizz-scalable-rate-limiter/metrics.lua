@@ -11,11 +11,22 @@ local function init()
   register.kong_requests = prometheus:counter(
     'quizizz_kong_requests'
   , 'total requests'
+  , {'service', 'route'}
+  )
+  register.kong_requests_identifier = prometheus:counter(
+    'quizizz_kong_requests_identifier'
+  , 'total requests with identifier'
   , {'service', 'route', 'identifier'}
   )
+
   register.kong_request_ratelimit_reached = prometheus:counter(
     'quizizz_kong_request_rate_limited'
   , 'total requests that have reached a rate limit threshold'
+  , {'rate_limiter_name', 'limited_by', 'service', 'route'}
+  )
+  register.kong_request_ratelimit_reached_identifier = prometheus:counter(
+    'quizizz_kong_request_rate_limited_identifier'
+  , 'total requests that have reached a rate limit threshold with identifier'
   , {'rate_limiter_name', 'limited_by', 'service', 'route', 'identifier'}
   )
 
@@ -23,11 +34,13 @@ local function init()
 end
 
 local function increment_requests_ratelimit_reached(rate_limiter_name, limited_by, service, route, identifier)
-    register.kong_request_ratelimit_reached:inc(1, {rate_limiter_name, limited_by, service, route, identifier})
+    register.kong_request_ratelimit_reached:inc(1, {rate_limiter_name, limited_by, service, route})
+    register.kong_request_ratelimit_reached_identifier:inc(1, {rate_limiter_name, limited_by, service, route, identifier})
 end
 
 local function increment_requests(service, route, identifier)
-    register.kong_requests:inc(1, {service, route, identifier})
+    register.kong_requests:inc(1, {service, route})
+    register.kong_requests_identifier:inc(1, {service, route, identifier})
 end
 
 return {
