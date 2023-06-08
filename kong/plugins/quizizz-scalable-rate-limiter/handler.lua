@@ -74,7 +74,8 @@ local function get_identifier(rate_limit_conf)
         identifier = (kong.router.get_service() or EMPTY).id
     elseif rate_limit_conf.limit_by == "header" then
         if rate_limit_conf.header_name == "x-forwarded-for" and kong.request.get_header(rate_limit_conf.header_name) ~= nil then
-            identifier = iputils.remove_last_ip(kong.request.get_header(rate_limit_conf.header_name))
+            identifier = iputils.get_client_ip(kong.request.get_header(rate_limit_conf.header_name))
+            kong.log.info("Debugging, identifier - ", identifier)
         else
             identifier = kong.request.get_header(rate_limit_conf.header_name)
         end
