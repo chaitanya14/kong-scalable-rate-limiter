@@ -66,16 +66,12 @@ local function get_cookie(cookies, cookie_name)
 end
 
 local function get_identifier(rate_limit_conf)
-    local latency_current_timestamp = time()
-
     local identifier
-
     if rate_limit_conf.limit_by == "service" then
         identifier = (kong.router.get_service() or EMPTY).id
     elseif rate_limit_conf.limit_by == "header" then
         if rate_limit_conf.header_name == "x-forwarded-for" and kong.request.get_header(rate_limit_conf.header_name) ~= nil then
             identifier = iputils.get_client_ip(kong.request.get_header(rate_limit_conf.header_name))
-            kong.log.info("Debugging, identifier - ", identifier)
         else
             identifier = kong.request.get_header(rate_limit_conf.header_name)
         end
@@ -149,8 +145,6 @@ end
 -- TRUE               |    TRUE                               => FALSE
 -- TRUE               |    FALSE                              => TRUE
 local function auth_check(conf)
-    local latency_current_timestamp = time()
-
     if not conf.disable_on_auth then
         kong.log.info("Disable on auth is false.")
         return true
@@ -175,8 +169,6 @@ local function auth_check(conf)
 end
 
 local function check_ratelimiter_applied(rate_limit_conf)
-    local latency_current_timestamp = time()
-
     if httputils.check_http_method(rate_limit_conf) == false then
         return false
     end
@@ -189,8 +181,6 @@ local function check_ratelimiter_applied(rate_limit_conf)
 end
 
 local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
-    local latency_current_timestamp = time()
-
     -- Consumer is identified by ip address or authenticated_credential id
     local identifier, err = get_identifier(rate_limit_conf)
 
@@ -206,8 +196,6 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
         hour = rate_limit_conf.hour,
         day = rate_limit_conf.day
     }
-
-    kong.log.info("Identifier - ", identifier, limits)
 
     local usage, stop, err = get_usage(conf, identifier, current_timestamp, limits)
 
@@ -384,7 +372,7 @@ function RateLimitingHandler:access(conf)
     if status then
         return retval
     else
-        kong.log.err("Failed in executing access function for rate limiter")
+        kong.log.err("Failed in executing access function for rate limiter", retval)
     end
 end
 
