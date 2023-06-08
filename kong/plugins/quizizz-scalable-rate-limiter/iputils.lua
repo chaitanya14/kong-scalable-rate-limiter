@@ -59,7 +59,7 @@ local function remove_last_ip(ips)
             break
         end
         j = j + 1
-        new_identifier = new_identifier .. ":" .. i
+        new_identifier = i
     end
 
     return new_identifier
