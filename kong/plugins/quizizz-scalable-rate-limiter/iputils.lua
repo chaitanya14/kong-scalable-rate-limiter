@@ -48,7 +48,7 @@ local function check_is_ip_blacklisted(conf)
     return false
 end
 
-local function remove_last_ip(ips)
+local function get_client_ip(ips)
     local _, ip_count = string.gsub(ips, " ", "")
     ip_count = ip_count + 1
 
@@ -59,7 +59,7 @@ local function remove_last_ip(ips)
             break
         end
         j = j + 1
-        new_identifier = new_identifier .. ":" .. i
+        new_identifier = i
     end
 
     return new_identifier
@@ -69,5 +69,5 @@ return {
     check_ip_matches_cidr = check_ip_matches_cidr,
     check_is_ip_whitelisted = check_is_ip_whitelisted,
     check_is_ip_blacklisted = check_is_ip_blacklisted,
-    remove_last_ip = remove_last_ip
+    get_client_ip = get_client_ip
 }
