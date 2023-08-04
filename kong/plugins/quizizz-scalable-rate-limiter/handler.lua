@@ -26,6 +26,9 @@ local RETRY_AFTER         = "Retry-After"
 local RATELIMITERS_APPLIED = "X-RateLimits-Applied"
 local WHITELISTED_IP_HEADER = "X-Whitelisted-IP"
 
+local DEVICEID_WEB_COOKIE = "quizizz_uid"
+local DEVICEID_APP_COOKIE = "Q_HTTP_USER_DEVICE_ID"
+
 local X_RATELIMIT_LIMIT = {
   second = "RateLimit-Limit-Second",
   minute = "RateLimit-Limit-Minute",
@@ -69,12 +72,29 @@ local function get_identifier(rate_limit_conf)
     local identifier
     if rate_limit_conf.limit_by == "service" then
         identifier = (kong.router.get_service() or EMPTY).id
-    elseif rate_limit_conf.limit_by == "header" then
-        if rate_limit_conf.header_name == "x-forwarded-for" and kong.request.get_header(rate_limit_conf.header_name) ~= nil then
-            identifier = iputils.get_client_ip(kong.request.get_header(rate_limit_conf.header_name))
-        else
-            identifier = kong.request.get_header(rate_limit_conf.header_name)
+    elseif rate_limit_conf.limit_by == "ip" then
+        if kong.request.get_header(rate_limit_conf.ip_header_name) ~= nil then
+            identifier = iputils.get_client_ip(kong.request.get_header(rate_limit_conf.ip_header_name))
         end
+    elseif rate_limit_conf.limit_by == "ip_deviceid" then
+        local deviceid = "nodevice"
+        local ip = "noip"
+
+        local cookies = kong.request.get_header("cookie")
+        if cookies ~= nil then
+            deviceid = get_cookie(cookies, DEVICEID_WEB_COOKIE)
+            if deviceid == nil then
+                deviceid = get_cookie(cookies, DEVICEID_APP_COOKIE)
+            end
+        end
+
+        if kong.request.get_header(rate_limit_conf.ip_header_name) ~= nil then
+            ip = iputils.get_client_ip(kong.request.get_header(rate_limit_conf.ip_header_name))
+        end
+
+        identifier = deviceid .. ":" .. ip
+    elseif rate_limit_conf.limit_by == "header" then
+        identifier = iputils.get_client_ip(kong.request.get_header(rate_limit_conf.header_name))
     elseif rate_limit_conf.limit_by == "consumer" then
         identifier = kong.request.get_header("X-Consumer-Username")
     elseif rate_limit_conf.limit_by == "cookie" then
