@@ -234,6 +234,7 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
         -- Adding headers
         local reset
         local headers = {}
+        headers["iden"] = identifier
         if rate_limit_conf.verbose_client_headers then
           local timestamps
           local limit
