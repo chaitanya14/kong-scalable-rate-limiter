@@ -231,7 +231,7 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
     )
 
     if auth_check(rate_limit_conf) then
-        -- Adding hcat eaders
+        -- Adding headers
         local reset
         local headers = {}
         headers["iden"] = identifier
