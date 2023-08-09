@@ -81,7 +81,7 @@ return {
                                         limit_by = {
                                             type = "string",
                                             default = "service",
-                                            one_of = { "service", "header", "consumer", "cookie" },
+                                            one_of = { "service", "header", "consumer", "cookie", "ip", "ip_deviceid" },
                                             required = false,
                                         },
                                     },
@@ -93,6 +93,13 @@ return {
                                     },
                                     {
                                         header_name = typedefs.header_name,
+                                    },
+                                    {
+                                        ip_header_name = {
+                                            type = "string",
+                                            required = false,
+                                            default = "x-forwarded-for",
+                                        },
                                     },
                                     {
                                         cookie_name = {
