@@ -88,6 +88,10 @@ local function get_identifier(rate_limit_conf)
             end
         end
 
+        if deviceid == nil then
+            deviceid = "nodevice"
+        end
+
         if kong.request.get_header(rate_limit_conf.ip_header_name) ~= nil then
             ip = iputils.get_client_ip(kong.request.get_header(rate_limit_conf.ip_header_name))
         end
