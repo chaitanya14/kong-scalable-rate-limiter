@@ -321,17 +321,17 @@ function protectedAccess(conf)
     local current_timestamp = time() * 1000
 
     -- Check if the IP is blacklisted
-    if iputils.check_is_ip_blacklisted(conf) then
-        return kong.response.exit(403, { error = { message = "IP is blacklisted" }})
-    end
+    -- if iputils.check_is_ip_blacklisted(conf) then
+    --     return kong.response.exit(403, { error = { message = "IP is blacklisted" }})
+    -- end
 
     -- Check if the IP is whitelisted
-    if iputils.check_is_ip_whitelisted(conf) then
-        headers = {}
-        headers[WHITELISTED_IP_HEADER] = true
-        kong.response.set_headers(headers)
-        return
-    end
+    -- if iputils.check_is_ip_whitelisted(conf) then
+    --     headers = {}
+    --     headers[WHITELISTED_IP_HEADER] = true
+    --     kong.response.set_headers(headers)
+    --     return
+    -- end
 
     -- Add a header for which rate limiters are applied in priority
     if conf.rate_limiters_applied_header then
