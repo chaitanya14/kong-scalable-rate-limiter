@@ -1,6 +1,6 @@
 #!/bin/bash
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [ '$BRANCH' != 'main' ]; then
+if [ $BRANCH != 'main' ]; then
   echo "Branch is not main, exiting"
   exit 1
 fi
