@@ -13,8 +13,6 @@ local function check_ip_matches_cidr(cidrs, ip)
 end
 
 local function check_is_ip_whitelisted(conf)
-    return false
-
     local latency_current_timestamp = time()
 
     if kong.request.get_header('x-forwarded-for') == nil then
@@ -33,8 +31,6 @@ local function check_is_ip_whitelisted(conf)
 end
 
 local function check_is_ip_blacklisted(conf)
-    return false
-
     local latency_current_timestamp = time()
 
     if kong.request.get_header('x-forwarded-for') == nil then
