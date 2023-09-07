@@ -207,11 +207,12 @@ end
 local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
     -- Consumer is identified by ip address or authenticated_credential id
     local identifier, err = get_identifier(rate_limit_conf)
-    kong.log.info("Rate limit identifier - ", identifier)
     if err then
         kong.log.err(err)
         return rate_limit_conf.block_access_on_error
     end
+
+    kong.log.info("Rate limit identifier - ", identifier)
 
     -- Load current metric for configured period
     local limits = {
