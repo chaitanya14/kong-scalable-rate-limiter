@@ -111,8 +111,9 @@ local function get_identifier(rate_limit_conf)
     if not identifier then
         return nil, "No rate-limiting identifier found in request"
     end
-
-    return rate_limit_conf.rate_limiter_name .. ':' .. identifier
+    identifier = rate_limit_conf.rate_limiter_name .. ':' .. identifier
+    kong.log.warn("Rate limit identifier - ", identifier)
+    return identifier
 end
 
 local function get_usage(conf, identifier, current_timestamp, limits)
@@ -212,7 +213,6 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
         return rate_limit_conf.block_access_on_error
     end
 
-    kong.log.info("Rate limit identifier - ", identifier)
 
     -- Load current metric for configured period
     local limits = {
@@ -289,7 +289,7 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
                 kong.router.get_service()['name'],
                 identifier
             )
-            kong.log.info("Rate limit exceeded for identifier - ", identifier)
+            kong.log.warn("Rate limit exceeded for identifier - ", identifier)
             if rate_limit_conf.shadow_mode_enabled then
                 if rate_limit_conf.shadow_mode_include_response_header then
                     headers[rate_limit_conf.shadow_mode_response_header_name] = true
@@ -381,7 +381,6 @@ function protectedAccess(conf)
             if err then
                 kong.log.err(err)
             end
-            kong.log.info("Rate limit identifier - ", identifier)
 
             local ok, err = timer_at(0, increment, conf, limits, identifier, current_timestamp, 1)
             if not ok then
