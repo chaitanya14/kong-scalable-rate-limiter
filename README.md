@@ -1,6 +1,19 @@
 [![Continuous Integration](https://github.com/dream11/kong-scalable-rate-limiter/actions/workflows/ci.yml/badge.svg)](https://github.com/dream11/kong-scalable-rate-limiter/actions/workflows/ci.yml)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
+# Deployment
+
+## Installation required for deployment
+1. Install luarocks -- ```arch -arm64 brew install luarocks```
+2. Install awscli and configure it - [AWS CLI docs](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+
+## Deploy to production
+1. Make sure you are on `main` branch
+2. Run `./scripts/deploy-prod.sh`
+
+## Deploy to development
+1. Run `./scripts/deploy-dev.sh`
+
 # Scalable Rate Limiter
 
 ## Overview
