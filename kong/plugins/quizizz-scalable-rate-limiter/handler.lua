@@ -207,11 +207,12 @@ end
 local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
     -- Consumer is identified by ip address or authenticated_credential id
     local identifier, err = get_identifier(rate_limit_conf)
-
     if err then
         kong.log.err(err)
         return rate_limit_conf.block_access_on_error
     end
+
+    kong.log.info("Rate limit identifier - ", identifier)
 
     -- Load current metric for configured period
     local limits = {
@@ -288,7 +289,7 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
                 kong.router.get_service()['name'],
                 identifier
             )
-            kong.log.warn("Rate limit exceeded for identifier -", identifier)
+            kong.log.info("Rate limit exceeded for identifier - ", identifier)
             if rate_limit_conf.shadow_mode_enabled then
                 if rate_limit_conf.shadow_mode_include_response_header then
                     headers[rate_limit_conf.shadow_mode_response_header_name] = true
