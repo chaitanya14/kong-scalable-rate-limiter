@@ -381,6 +381,7 @@ function protectedAccess(conf)
             if err then
                 kong.log.err(err)
             end
+            kong.log.info("Rate limit identifier - ", identifier)
 
             local ok, err = timer_at(0, increment, conf, limits, identifier, current_timestamp, 1)
             if not ok then
