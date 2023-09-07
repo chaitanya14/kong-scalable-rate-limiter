@@ -288,7 +288,7 @@ local function check_ratelimit_reached(conf, rate_limit_conf, current_timestamp)
                 kong.router.get_service()['name'],
                 identifier
             )
-
+            kong.log.warn("Rate limit exceeded for identifier -", identifier)
             if rate_limit_conf.shadow_mode_enabled then
                 if rate_limit_conf.shadow_mode_include_response_header then
                     headers[rate_limit_conf.shadow_mode_response_header_name] = true
