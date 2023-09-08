@@ -111,8 +111,10 @@ local function get_identifier(rate_limit_conf)
     if not identifier then
         return nil, "No rate-limiting identifier found in request"
     end
-
-    return rate_limit_conf.rate_limiter_name .. ':' .. identifier
+    identifier = rate_limit_conf.rate_limiter_name .. ':' .. identifier
+    kong.log.warn("Rate limit identifier - ", identifier)
+    
+    return identifier
 end
 
 local function get_usage(conf, identifier, current_timestamp, limits)
